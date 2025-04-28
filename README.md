@@ -31,4 +31,4 @@ Este projeto busca aplicar conceitos de robótica, eletrônica, automação e pr
 
     Módulos auxiliares (ex: driver de motor)
 
-![Robô de Combate](/IMG/Robo_Autonomo.jpg)
+![Robô de Combate](../RoboDeCombate/IMG/Robo_Autonomo.jpg)
