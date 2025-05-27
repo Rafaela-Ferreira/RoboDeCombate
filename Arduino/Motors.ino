@@ -49,36 +49,36 @@ void loop() {
 }
 
 void moveForward() {
-  digitalWrite(inLeftA, HIGH);
+  digitalWrite(inLA, HIGH);
   digitalWrite(inLB, LOW);
-  digitalWrite(inRightA, HIGH);
+  digitalWrite(inRA, HIGH);
   digitalWrite(inRB, LOW);
 }
 
 void moveBackward() {
-  digitalWrite(inLeftA, LOW);
+  digitalWrite(inLA, LOW);
   digitalWrite(inLB, HIGH);
-  digitalWrite(inRightA, LOW);
+  digitalWrite(inRA, LOW);
   digitalWrite(inRB, HIGH);
 }
 
 void turnRight() {
-  digitalWrite(inLeftA, HIGH);
+  digitalWrite(inLA, HIGH);
   digitalWrite(inLB, LOW);
-  digitalWrite(inRightA, LOW);
+  digitalWrite(inRA, LOW);
   digitalWrite(inRB, HIGH);
 }
 
 void turnLeft() {
-  digitalWrite(inLeftA, LOW);
+  digitalWrite(inLA, LOW);
   digitalWrite(inLB, HIGH);
-  digitalWrite(inRightA, HIGH);
+  digitalWrite(inRA, HIGH);
   digitalWrite(inRB, LOW);
 }
 
 void stopMotors() {
-  digitalWrite(inLeftA, LOW);
+  digitalWrite(inLA, LOW);
   digitalWrite(inLB, LOW);
-  digitalWrite(inRightA, LOW);
+  digitalWrite(inRA, LOW);
   digitalWrite(inRB, LOW);
 }
