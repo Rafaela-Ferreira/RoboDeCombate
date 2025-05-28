@@ -37,6 +37,18 @@ analogWrite(enB, Speed); // Write The Duty Cycle 0 to 255 Enable Pin B for Motor
 delay(500);
 }
 void loop(){
+
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+
+  analogWrite(enA, Speed);
+  analogWrite(enB, Speed);
+  delay(2000);
+
+  Stop();
+  delay(2000);
 s1 = analogRead(ir_R);
 s2 = analogRead(ir_F);
 
