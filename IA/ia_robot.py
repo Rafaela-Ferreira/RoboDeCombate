@@ -8,15 +8,15 @@ ESP32_IP = "http://192.168.4.1"
 STREAM_URL = f"{ESP32_IP}:81/stream"
 model = YOLO('yolov8n.pt')
 
-FIRE_CLASSES = ['fire', 'flame']
-OBSTACLE_CLASSES = ['person', 'chair', 'table', 'car']
 CONFIDENCE_THRESHOLD = 0.6
+FIRE_CLASSES = ['fire', 'flame', 'smoke']
+OBSTACLE_CLASSES = ['person', 'chair', 'table', 'car', 'sofa']
 
 frame_lock = threading.Lock()
 latest_frame = None
 stop_thread = False
 
-def capture_thread_func():
+def capturar_stream():
     global latest_frame, stop_thread
     cap = cv2.VideoCapture(STREAM_URL)
     if not cap.isOpened():
@@ -32,20 +32,16 @@ def capture_thread_func():
         else:
             print("Erro ao capturar frame")
         time.sleep(0.01)
-
     cap.release()
 
 def detectar_objetos(frame):
     results = model(frame, verbose=False)[0]
     detections = []
-
     for r in results.boxes.data.tolist():
         x1, y1, x2, y2, conf, cls = r
         if conf < CONFIDENCE_THRESHOLD:
             continue
-
         cls_name = model.names[int(cls)]
-        print(f"Detectado: {cls_name} com confiança {conf:.2f}")  # Debug opcional
         detections.append({
             'class': cls_name,
             'conf': conf,
@@ -53,36 +49,56 @@ def detectar_objetos(frame):
         })
     return detections
 
-
 def escolher_foco_fogo(detections):
     fogos = [d for d in detections if d['class'] in FIRE_CLASSES]
-    obstaculos = [d for d in detections if d['class'] in OBSTACLE_CLASSES]
-
     if not fogos:
         return None
+    return max(fogos, key=lambda f: (f['box'][2] - f['box'][0]) * (f['box'][3] - f['box'][1]))
 
-    foco_escolhido = max(fogos, key=lambda f: (f['box'][2] - f['box'][0]) * (f['box'][3] - f['box'][1]))
-    fogo_cx = (foco_escolhido['box'][0] + foco_escolhido['box'][2]) // 2
-    fogo_cy = (foco_escolhido['box'][1] + foco_escolhido['box'][3]) // 2
-
+def obstaculo_bloqueando(fogo, detections):
+    fogo_cx = (fogo['box'][0] + fogo['box'][2]) // 2
+    fogo_cy = (fogo['box'][1] + fogo['box'][3]) // 2
+    obstaculos = [d for d in detections if d['class'] in OBSTACLE_CLASSES]
     for obs in obstaculos:
         x1, y1, x2, y2 = obs['box']
         if x1 < fogo_cx < x2 and y1 < fogo_cy < y2:
-            return None
-    return foco_escolhido
+            return obs
+    return None
+
+def decidir_direcao_desvio(obstaculo, frame_largura):
+    x1, _, x2, _ = obstaculo['box']
+    obs_cx = (x1 + x2) // 2
+
+    if obs_cx < frame_largura // 2:
+        return "direita"
+    else:
+        return "esquerda"
+
+def enviar_comando_direcao(direcao):
+    try:
+        if direcao == "esquerda":
+            url = f"{ESP32_IP}/desviar_esquerda"
+        elif direcao == "direita":
+            url = f"{ESP32_IP}/desviar_direita"
+        else:
+            url = f"{ESP32_IP}/recuar"
+        r = requests.get(url, timeout=1.5)
+        print(f"Desviando para {direcao}:", r.text)
+    except Exception as e:
+        print("Erro ao enviar comando de desvio:", e)
 
 def acionar_extintor():
     try:
         r = requests.get(f"{ESP32_IP}/apagar", timeout=1.5)
         print("Extintor acionado:", r.text)
-    except:
-        print("Erro ao acionar extintor")
+    except Exception as e:
+        print("Erro ao acionar extintor:", e)
 
-thread = threading.Thread(target=capture_thread_func)
+thread = threading.Thread(target=capturar_stream)
 thread.start()
 
 frame_count = 0
-detections = []
+ultima_deteccao = []
 
 try:
     while True:
@@ -94,28 +110,35 @@ try:
             continue
 
         frame_count += 1
-
         if frame_count % 10 == 0:
-            detections = detectar_objetos(frame)
-            foco = escolher_foco_fogo(detections)
-            if foco:
-                acionar_extintor()
-        else:
-            foco = escolher_foco_fogo(detections)
+            ultima_deteccao = detectar_objetos(frame)
+            foco_fogo = escolher_foco_fogo(ultima_deteccao)
 
-        for d in detections:
+            if foco_fogo:
+                obstaculo = obstaculo_bloqueando(foco_fogo, ultima_deteccao)
+                if obstaculo:
+                    largura_frame = frame.shape[1]
+                    direcao = decidir_direcao_desvio(obstaculo, largura_frame)
+                    enviar_comando_direcao(direcao)
+                else:
+                    acionar_extintor()
+        else:
+            foco_fogo = escolher_foco_fogo(ultima_deteccao)
+
+        # Exibição das detecções
+        for d in ultima_deteccao:
             x1, y1, x2, y2 = d['box']
             color = (0, 0, 255) if d['class'] in FIRE_CLASSES else (255, 0, 0)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             cv2.putText(frame, f"{d['class']} {d['conf']:.2f}", (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-        if foco:
-            x1, y1, x2, y2 = foco['box']
-            cv2.putText(frame, ">> PRIORITÁRIO", (x1, y2 + 20),
+        if foco_fogo:
+            x1, y1, x2, y2 = foco_fogo['box']
+            cv2.putText(frame, ">> FOCO PRINCIPAL", (x1, y2 + 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
-        cv2.imshow("RoboFIRE Visão", frame)
+        cv2.imshow("RoboFIRE Visão IA", frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
