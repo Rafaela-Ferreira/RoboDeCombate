@@ -1,4 +1,3 @@
-como eu adiciono o modulo de camera esp32-cam?
 
 #include <ESP32Servo.h>
 
