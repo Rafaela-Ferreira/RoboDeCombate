@@ -2,7 +2,7 @@
 #include <ESP32Servo.h>
 
 Servo meuServo;
-int pinoServo = 15;
+int pinoServo = 5;
 
 // Sensores digitais
 int sensor1 = 23; // esquerda
