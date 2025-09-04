@@ -1,39 +1,32 @@
-// === Pinos do Motor (adaptados para ESP32) ===
-#define enL 4    // PWM canal esquerdo
-#define inLA 16
-#define inLB 17
+// === Motor Pins ===
+#define enL 17
+#define inLA 32
+#define inLB 33
 
-#define enR 5    // PWM canal direito
-#define inRA 18
-#define inRB 19
+#define enR 16
+#define inRA 25
+#define inRB 26
 
-int motorSpeed = 200; // valor de 0 a 255
-
-// Canais e resolução do PWM
-#define PWM_FREQ     1000
-#define PWM_CHANNEL_L  0
-#define PWM_CHANNEL_R  1
-#define PWM_RESOLUTION 8  // 8 bits (0-255)
+int motorSpeed = 200; // 0–255
+#define PWM_CH_L 0
+#define PWM_CH_R 1
 
 void setup() {
-  Serial.begin(115200);
-
-  // Configura pinos de direção
   pinMode(inLA, OUTPUT);
   pinMode(inLB, OUTPUT);
   pinMode(inRA, OUTPUT);
   pinMode(inRB, OUTPUT);
 
-  // Configura PWM (ledc) para os pinos de enable
-  ledcSetup(PWM_CHANNEL_L, PWM_FREQ, PWM_RESOLUTION);
-  ledcAttachPin(enL, PWM_CHANNEL_L);
+  // Configura PWM (canal, freq, resolução)
+  ledcSetup(PWM_CH_L, 5000, 8);
+  ledcAttachPin(enL, PWM_CH_L);
 
-  ledcSetup(PWM_CHANNEL_R, PWM_FREQ, PWM_RESOLUTION);
-  ledcAttachPin(enR, PWM_CHANNEL_R);
+  ledcSetup(PWM_CH_R, 5000, 8);
+  ledcAttachPin(enR, PWM_CH_R);
 
   // Define velocidade inicial
-  ledcWrite(PWM_CHANNEL_L, motorSpeed);
-  ledcWrite(PWM_CHANNEL_R, motorSpeed);
+  ledcWrite(PWM_CH_L, motorSpeed);
+  ledcWrite(PWM_CH_R, motorSpeed);
 }
 
 void loop() {
