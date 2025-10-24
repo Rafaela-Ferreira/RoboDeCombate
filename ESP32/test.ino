@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <ESP32Servo.h>
-
+#include "esp32-hal-ledc.h"
+  
 // ====== CONFIGURAÇÕES ======
 #define SENSOR_ACTIVE_LOW 1
 
