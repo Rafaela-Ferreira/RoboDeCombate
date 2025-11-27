@@ -6,17 +6,23 @@ import threading
 # =============================
 # CONFIGURAÇÕES
 # =============================
-USE_ESP32 = True
+USE_ESP32 = False
 ESP32_IP = "http://192.168.4.1"
 STREAM_URL = f"{ESP32_IP}"
 
-VIDEO_TEST = 0  # se USE_ESP32 = False
+VIDEO_TEST = "./teste_incendio.mp4"  # Usar 0 (caso o uso do ESP for True) ou o caminho (caso o uso do ESP for False)
 
 model = YOLO("best.pt")
 
 CONFIDENCE_THRESHOLD = 0.6
 FIRE_CLASSES = ["fire", "flame", "smoke"]
 OBSTACLE_CLASSES = ["person", "chair", "table", "car", "sofa"]
+
+# =============================
+# AJUSTE DE VELOCIDADE DO VÍDEO
+# =============================
+VIDEO_SPEED = 3.0
+FRAME_DELAY = 0.01 * VIDEO_SPEED
 
 # =============================
 # VARIÁVEIS
@@ -33,10 +39,7 @@ frames_sem_fogo = 0
 FOGO_FRAMES_MIN = 3
 FOGO_FRAME_RESET = 5
 
-# =============================
-# ANTI-SPAM
-# =============================
-ultima_msg = ""   # salva última frase dita pela IA
+ultima_msg = ""
 
 
 def log(msg):
@@ -64,6 +67,11 @@ def capturar_stream():
     while not stop_thread:
         ret, frame = cap.read()
         if not ret:
+            break
+            if not USE_ESP32:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+
             log("⚠ Falha na captura... reconectando.")
             time.sleep(0.2)
             continue
@@ -71,7 +79,7 @@ def capturar_stream():
         with frame_lock:
             latest_frame = frame.copy()
 
-        time.sleep(0.01)
+        time.sleep(FRAME_DELAY)
 
     cap.release()
 
@@ -137,7 +145,6 @@ try:
 
         frame_count += 1
 
-        # rodar IA a cada 10 frames
         if frame_count % 10 == 0:
             ultima_deteccao = detectar_objetos(frame)
             foco = escolher_foco_fogo(ultima_deteccao)
